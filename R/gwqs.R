@@ -52,6 +52,11 @@
 #' @param plan_strategy A character value that allows to choose the evaluation strategies for the
 #' \code{plan} function. You can choose among "sequential", "transparent", "multisession", "multicore",
 #' "multiprocess", "cluster" and "remote" (see \code{\link[future]{plan}} help page for more details).
+#' @param workers A positive numeric scalar or a function specifying the maximum
+#'   number of parallel futures that can be active at the same time before
+#'   blocking. If a function, it is called without arguments when the future is
+#'   created and its value is used to configure the workers. The function should
+#'   return a numeric scalar.
 #' @param optim.method A character identifying the method to be used by the \code{\link[stats]{optim}} function
 #' (you can choose among \code{"BFGS", "Nelder-Mead", "CG", "SANN"}, \code{"BFGS"} is the default).
 #' See \code{\link[stats]{optim}} for details.
@@ -177,7 +182,8 @@
 #'              validation = 0.6, family = gaussian, signal = c("t2", "one", "abst", "expt"),
 #'              rs = FALSE, n_vars = NULL,
 #'              zilink = c("logit", "probit", "cloglog", "cauchit", "log"), seed = NULL,
-#'              plan_strategy = "sequential",
+#'              plan_strategy = "sequential", 
+#'              workers = availableCores(constraints = "multicore"),
 #'              optim.method = c("BFGS", "Nelder-Mead", "CG", "SANN"),
 #'              control = list(trace = FALSE, maxit = 1000, reltol = 1e-8))
 
@@ -186,7 +192,8 @@ gwqs <- function(formula, data, na.action, weights, mix_name, stratified, valid_
                  validation = 0.6, family = gaussian,
                  signal = c("t2", "one", "abst", "expt"), rs = FALSE, n_vars = NULL,
                  zilink = c("logit", "probit", "cloglog", "cauchit", "log"), seed = NULL,
-                 plan_strategy = "sequential",
+                 plan_strategy = "sequential", 
+                 workers = availableCores(constraints = "multicore"),
                  optim.method = c("BFGS", "Nelder-Mead", "CG", "SANN"),
                  control = list(trace = FALSE, maxit = 1000, reltol = 1e-8)){
 
@@ -347,8 +354,14 @@ gwqs <- function(formula, data, na.action, weights, mix_name, stratified, valid_
   else if (family$family %in% c("binomial", "poisson", "multinomial", "negbin")) ts = "z"
 
   if(!is.numeric(b)) stop("'b' must be a number\n")
-
-  plan(plan_strategy)
+  
+  supports_workers <- c('multisession', 'multicore', 'multiprocess', 'cluster')
+  if (plan_strategy %in% supports_workers) {
+    plan(plan_strategy, workers = workers)
+  } else {
+    plan(plan_strategy)
+  }
+  
   if(control$trace) cat("start opt\n")
   param <- future_lapply(X = 1:b, FUN = optim.f, objfn = objfn, dtf = dtf[rindex$it,], bQ = Q[rindex$it,],
                          b1_pos = b1_pos, b1_constr = b1_constr, n_vars = n_vars, family = family, rs = rs,
@@ -363,7 +376,12 @@ gwqs <- function(formula, data, na.action, weights, mix_name, stratified, valid_
   slctd_vars <- lapply(param, function(i) i$slctd_vars)
 
   if(rs){
-    plan(plan_strategy)
+    supports_workers <- c('multisession', 'multicore', 'multiprocess', 'cluster')
+    if (plan_strategy %in% supports_workers) {
+      plan(plan_strategy, workers = workers)
+    } else {
+      plan(plan_strategy)
+    }
     param <- future_lapply(X = 1:b, FUN = set_par_names, slctd_vars, param, q_name = colnames(Q), family = family,
                            future.seed = FALSE)
   }
@@ -541,7 +559,8 @@ gwqs <- function(formula, data, na.action, weights, mix_name, stratified, valid_
 #'                validation = 0.6, family = gaussian,
 #'                signal = c("t2", "one", "abst", "expt"), rs = FALSE, n_vars = NULL,
 #'                zilink = c("logit", "probit", "cloglog", "cauchit", "log"), seed = NULL,
-#'                plan_strategy = "sequential",
+#'                plan_strategy = "sequential", 
+#'                workers = availableCores(constraints = "multicore"),  
 #'                optim.method = c("BFGS", "Nelder-Mead", "CG", "SANN"),
 #'                control = list(trace = FALSE, maxit = 1000, reltol = 1e-8))
 
@@ -551,6 +570,7 @@ gwqsrh <- function(formula, data, na.action, weights, mix_name, stratified, vali
                    signal = c("t2", "one", "abst", "expt"), rs = FALSE, n_vars = NULL,
                    zilink = c("logit", "probit", "cloglog", "cauchit", "log"),
                    seed = NULL, plan_strategy = "sequential",
+                   workers = availableCores(constraints = "multicore"),
                    optim.method = c("BFGS", "Nelder-Mead", "CG", "SANN"),
                    control = list(trace = FALSE, maxit = 1000, reltol = 1e-8)){
 

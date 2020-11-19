@@ -10,7 +10,8 @@ gwqs(formula, data, na.action, weights, mix_name, stratified, valid_var, b = 100
              validation = 0.6, family = gaussian, signal = c("t2", "one", "abst", "expt"),
              rs = FALSE, n_vars = NULL,
              zilink = c("logit", "probit", "cloglog", "cauchit", "log"), seed = NULL,
-             plan_strategy = "sequential",
+             plan_strategy = "sequential", 
+             workers = availableCores(constraints = "multicore"),
              optim.method = c("BFGS", "Nelder-Mead", "CG", "SANN"),
              control = list(trace = FALSE, maxit = 1000, reltol = 1e-8))
 
@@ -19,7 +20,8 @@ gwqsrh(formula, data, na.action, weights, mix_name, stratified, valid_var, rh = 
                validation = 0.6, family = gaussian,
                signal = c("t2", "one", "abst", "expt"), rs = FALSE, n_vars = NULL,
                zilink = c("logit", "probit", "cloglog", "cauchit", "log"), seed = NULL,
-               plan_strategy = "sequential",
+               plan_strategy = "sequential", 
+               workers = availableCores(constraints = "multicore"),  
                optim.method = c("BFGS", "Nelder-Mead", "CG", "SANN"),
                control = list(trace = FALSE, maxit = 1000, reltol = 1e-8))
 }
@@ -92,6 +94,12 @@ in the mixture is taken.}
 \item{plan_strategy}{A character value that allows to choose the evaluation strategies for the
 \code{plan} function. You can choose among "sequential", "transparent", "multisession", "multicore",
 "multiprocess", "cluster" and "remote" (see \code{\link[future]{plan}} help page for more details).}
+
+\item{workers}{A positive numeric scalar or a function specifying the maximum
+number of parallel futures that can be active at the same time before
+blocking. If a function, it is called without arguments when the future is
+created and its value is used to configure the workers. The function should
+return a numeric scalar.}
 
 \item{optim.method}{A character identifying the method to be used by the \code{\link[stats]{optim}} function
 (you can choose among \code{"BFGS", "Nelder-Mead", "CG", "SANN"}, \code{"BFGS"} is the default).
